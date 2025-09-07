@@ -259,13 +259,17 @@ function initStudentForm() {
     e.preventDefault()
     if (!validateForm("add")) return
 
+    const { year, month } = getCurrentMonth();
+    const monthKey = formatMonth(year, month);
+    const feesPaidObj = {};
+    feesPaidObj[monthKey] = document.getElementById("add-feesPaid").checked;
     const studentData = {
       id: generateId(),
       name: document.getElementById("add-name").value.trim(),
       fatherName: document.getElementById("add-fatherName").value.trim(),
       phone: document.getElementById("add-phone").value.trim(),
       className: document.getElementById("add-className").value,
-      feesPaid: document.getElementById("add-feesPaid").checked,
+      feesPaid: feesPaidObj,
       createdAt: Date.now(),
     }
 
@@ -282,12 +286,17 @@ function initStudentForm() {
     e.preventDefault()
     if (!validateForm("edit")) return
 
+    const { year, month } = getCurrentMonth();
+    const monthKey = formatMonth(year, month);
+    // Keep previous months' feesPaid, update only current month
+    const feesPaidObj = { ...(currentEditingStudent.feesPaid || {}) };
+    feesPaidObj[monthKey] = document.getElementById("edit-feesPaid").checked;
     const studentData = {
       name: document.getElementById("edit-name").value.trim(),
       fatherName: document.getElementById("edit-fatherName").value.trim(),
       phone: document.getElementById("edit-phone").value.trim(),
       className: document.getElementById("edit-className").value,
-      feesPaid: document.getElementById("edit-feesPaid").checked,
+      feesPaid: feesPaidObj,
     }
 
     const index = students.findIndex((s) => s.id === currentEditingStudent.id)
@@ -366,7 +375,10 @@ function initStudentForm() {
     document.getElementById("edit-fatherName").value = student.fatherName
     document.getElementById("edit-phone").value = student.phone
     document.getElementById("edit-className").value = student.className
-    document.getElementById("edit-feesPaid").checked = student.feesPaid
+  // Show current month status in edit form
+  const { year, month } = getCurrentMonth();
+  const monthKey = formatMonth(year, month);
+  document.getElementById("edit-feesPaid").checked = (student.feesPaid && student.feesPaid[monthKey]) || false;
 
     openPanel(editPanel)
     document.getElementById("edit-name").focus()
@@ -437,6 +449,10 @@ function renderStudentsTable(searchTerm = "") {
     .map((student) => {
       const todayAttendance = attendance[student.id]?.[today.monthKey]?.[today.dayKey] || ""
 
+      // Show fees paid for current month
+      const { year, month } = getCurrentMonth();
+      const monthKey = formatMonth(year, month);
+      const isPaid = student.feesPaid && student.feesPaid[monthKey];
       return `
         <tr data-student-id="${student.id}">
           <td class="student-name-cell">${student.name}</td>
@@ -444,9 +460,9 @@ function renderStudentsTable(searchTerm = "") {
           <td>${student.phone}</td>
           <td>Class ${student.className}</td>
           <td class="fees-toggle-cell">
-            <div class="fees-toggle ${student.feesPaid ? "paid" : ""}" 
+            <div class="fees-toggle ${isPaid ? "paid" : ""}" 
                  onclick="toggleFees('${student.id}')" 
-                 title="${student.feesPaid ? "Fees Paid" : "Fees Not Paid"}">
+                 title="${isPaid ? "Fees Paid" : "Fees Not Paid"}">
             </div>
           </td>
           <td class="attendance-toggle-cell">
@@ -811,12 +827,15 @@ window.toggleFees = (studentId) => {
   const student = students.find((s) => s.id === studentId)
   if (!student) return
 
-  student.feesPaid = !student.feesPaid
+  const { year, month } = getCurrentMonth();
+  const monthKey = formatMonth(year, month);
+  if (!student.feesPaid) student.feesPaid = {};
+  student.feesPaid[monthKey] = !student.feesPaid[monthKey];
   saveStudents(students)
   renderStudentsTable()
 
-  const statusText = student.feesPaid ? "marked as paid" : "marked as unpaid"
-  showToast(`${student.name}'s fees ${statusText}`)
+  const statusText = student.feesPaid[monthKey] ? "marked as paid" : "marked as unpaid"
+  showToast(`${student.name}'s fees for ${monthKey} ${statusText}`)
 }
 
 // Initialize Particles Background
