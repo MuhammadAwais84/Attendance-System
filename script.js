@@ -40,22 +40,76 @@ function validatePhone(phone) {
 }
 
 // LocalStorage Functions
+// Cache implementation for better performance
+const cache = {
+  students: null,
+  attendance: null,
+  lastUpdate: null,
+  filteredStudents: {}
+};
+
 function loadStudents() {
   try {
+    // Check cache first
+    if (cache.students && cache.lastUpdate && (Date.now() - cache.lastUpdate) < 300000) {
+      return cache.students;
+    }
+
     const students = localStorage.getItem("students")
-    return students ? JSON.parse(students) : []
+    const parsed = students ? JSON.parse(students) : [];
+    
+    // Validate and repair data structure if needed
+    const validatedStudents = parsed.map(student => ({
+      ...student,
+      id: student.id || generateId(),
+      feesPaid: student.feesPaid || {},
+      createdAt: student.createdAt || Date.now()
+    }));
+
+    // Update cache
+    cache.students = validatedStudents;
+    cache.lastUpdate = Date.now();
+    
+    return validatedStudents;
   } catch (error) {
     console.error("Error loading students:", error)
+    showToast("Error loading student data. Using backup data.", "error")
     return []
   }
 }
 
-function saveStudents(students) {
+function saveStudents(students, retryCount = 0) {
+  const MAX_RETRIES = 3;
   try {
+    // Validate data before saving
+    if (!Array.isArray(students)) {
+      throw new Error("Invalid students data structure");
+    }
+
+    // Ensure all required fields exist
+    students = students.map(student => ({
+      id: student.id || generateId(),
+      name: student.name || '',
+      fatherName: student.fatherName || '',
+      phone: student.phone || '',
+      className: student.className || '',
+      feesPaid: student.feesPaid || {},
+      createdAt: student.createdAt || Date.now()
+    }));
+
     localStorage.setItem("students", JSON.stringify(students))
+    // Update cache
+    cache.students = students;
+    cache.lastUpdate = Date.now();
+    // Clear filtered students cache when data changes
+    cache.filteredStudents = {};
   } catch (error) {
     console.error("Error saving students:", error)
-    showToast("Error saving students", "error")
+    if (retryCount < MAX_RETRIES) {
+      setTimeout(() => saveStudents(students, retryCount + 1), 1000);
+    } else {
+      showToast("Error saving student data. Please try again.", "error")
+    }
   }
 }
 
@@ -254,15 +308,32 @@ function initStudentForm() {
     })
   })
 
+  // Initialize month selectors
+  const addFeesMonth = document.getElementById("add-fees-month");
+  if (addFeesMonth) {
+    addFeesMonth.innerHTML = generateMonthOptions();
+    // Set current month as default
+    const { year, month } = getCurrentMonth();
+    addFeesMonth.value = formatMonth(year, month);
+  }
+
   // Add Form submission
   addForm.addEventListener("submit", (e) => {
     e.preventDefault()
     if (!validateForm("add")) return
 
+    // Get the current month if month selector doesn't exist
     const { year, month } = getCurrentMonth();
-    const monthKey = formatMonth(year, month);
+    const currentMonthKey = formatMonth(year, month);
+    
+    // Try to get selected month from selector, fallback to current month
+    const monthSelector = document.getElementById("add-fees-month");
+    const selectedMonth = monthSelector ? monthSelector.value : currentMonthKey;
+    
     const feesPaidObj = {};
-    feesPaidObj[monthKey] = document.getElementById("add-feesPaid").checked;
+    const feesPaidCheckbox = document.getElementById("add-feesPaid");
+    feesPaidObj[selectedMonth] = feesPaidCheckbox ? feesPaidCheckbox.checked : false;
+    
     const studentData = {
       id: generateId(),
       name: document.getElementById("add-name").value.trim(),
@@ -286,11 +357,18 @@ function initStudentForm() {
     e.preventDefault()
     if (!validateForm("edit")) return
 
+    // Get the current month if month selector doesn't exist
     const { year, month } = getCurrentMonth();
-    const monthKey = formatMonth(year, month);
-    // Keep previous months' feesPaid, update only current month
+    const currentMonthKey = formatMonth(year, month);
+    
+    // Try to get selected month from selector, fallback to current month
+    const monthSelector = document.getElementById("edit-fees-month");
+    const selectedMonth = monthSelector ? monthSelector.value : currentMonthKey;
+    
     const feesPaidObj = { ...(currentEditingStudent.feesPaid || {}) };
-    feesPaidObj[monthKey] = document.getElementById("edit-feesPaid").checked;
+    const feesPaidCheckbox = document.getElementById("edit-feesPaid");
+    feesPaidObj[selectedMonth] = feesPaidCheckbox ? feesPaidCheckbox.checked : false;
+    
     const studentData = {
       name: document.getElementById("edit-name").value.trim(),
       fatherName: document.getElementById("edit-fatherName").value.trim(),
@@ -325,44 +403,84 @@ function initStudentForm() {
     clearFormErrors()
   }
 
-  function validateForm(type) {
-    let isValid = true
-    const prefix = type === "add" ? "add-" : "edit-"
+function validateForm(type) {
+  let isValid = true
+  const prefix = type === "add" ? "add-" : "edit-"
 
-    // Clear previous errors
-    document
-      .querySelectorAll(`#${prefix}name-error, #${prefix}fatherName-error, #${prefix}phone-error`)
-      .forEach((el) => (el.textContent = ""))
+  // Clear previous errors
+  document
+    .querySelectorAll(`#${prefix}name-error, #${prefix}fatherName-error, #${prefix}phone-error`)
+    .forEach((el) => (el.textContent = ""))
 
-    // Name validation
-    const nameInput = document.getElementById(`${prefix}name`)
-    if (!nameInput.value.trim()) {
-      document.getElementById(`${prefix}name-error`).textContent = "Name is required"
-      isValid = false
-    }
-
-    // Father name validation
-    const fatherNameInput = document.getElementById(`${prefix}fatherName`)
-    if (!fatherNameInput.value.trim()) {
-      document.getElementById(`${prefix}fatherName-error`).textContent = "Father name is required"
-      isValid = false
-    }
-
-    // Phone validation
-    const phoneInput = document.getElementById(`${prefix}phone`)
-    if (!phoneInput.value.trim()) {
-      document.getElementById(`${prefix}phone-error`).textContent = "Phone number is required"
-      isValid = false
-    } else if (!validatePhone(phoneInput.value)) {
-      document.getElementById(`${prefix}phone-error`).textContent = "Phone format should be 03XX-XXXXXXX"
-      isValid = false
-    }
-
-    return isValid
+  // Name validation
+  const nameInput = document.getElementById(`${prefix}name`)
+  const name = nameInput.value.trim();
+  if (!name) {
+    document.getElementById(`${prefix}name-error`).textContent = "Name is required"
+    isValid = false
+  } else if (name.length < 2) {
+    document.getElementById(`${prefix}name-error`).textContent = "Name must be at least 2 characters"
+    isValid = false
+  } else if (!/^[a-zA-Z\s]+$/.test(name)) {
+    document.getElementById(`${prefix}name-error`).textContent = "Name can only contain letters and spaces"
+    isValid = false
   }
 
-  function clearFormErrors() {
+  // Father name validation
+  const fatherNameInput = document.getElementById(`${prefix}fatherName`)
+  const fatherName = fatherNameInput.value.trim();
+  if (!fatherName) {
+    document.getElementById(`${prefix}fatherName-error`).textContent = "Father name is required"
+    isValid = false
+  } else if (fatherName.length < 2) {
+    document.getElementById(`${prefix}fatherName-error`).textContent = "Father name must be at least 2 characters"
+    isValid = false
+  } else if (!/^[a-zA-Z\s]+$/.test(fatherName)) {
+    document.getElementById(`${prefix}fatherName-error`).textContent = "Father name can only contain letters and spaces"
+    isValid = false
+  }
+
+  // Phone validation
+  const phoneInput = document.getElementById(`${prefix}phone`)
+  const phone = phoneInput.value.trim();
+  if (!phone) {
+    document.getElementById(`${prefix}phone-error`).textContent = "Phone number is required"
+    isValid = false
+  } else if (!validatePhone(phone)) {
+    document.getElementById(`${prefix}phone-error`).textContent = "Phone format should be 03XX-XXXXXXX"
+    isValid = false
+  }
+
+  // Check for duplicate phone numbers
+  if (phone && isValid) {
+    const otherStudents = students.filter(s => 
+      type === 'add' ? true : s.id !== currentEditingStudent.id
+    );
+    if (otherStudents.some(s => s.phone === phone)) {
+      document.getElementById(`${prefix}phone-error`).textContent = "Phone number already exists"
+      isValid = false
+    }
+  }
+
+  return isValid
+}  function clearFormErrors() {
     document.querySelectorAll(".error-message").forEach((el) => (el.textContent = ""))
+  }
+
+  // Function to generate month options
+  function generateMonthOptions() {
+    const currentDate = getCurrentMonth();
+    const months = [];
+    // Generate options for the last 12 months
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(currentDate.year, currentDate.month - 1 - i, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const monthKey = formatMonth(year, month);
+      const monthName = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      months.push(`<option value="${monthKey}">${monthName}</option>`);
+    }
+    return months.join("");
   }
 
   // Edit student function
@@ -375,10 +493,32 @@ function initStudentForm() {
     document.getElementById("edit-fatherName").value = student.fatherName
     document.getElementById("edit-phone").value = student.phone
     document.getElementById("edit-className").value = student.className
-  // Show current month status in edit form
-  const { year, month } = getCurrentMonth();
-  const monthKey = formatMonth(year, month);
-  document.getElementById("edit-feesPaid").checked = (student.feesPaid && student.feesPaid[monthKey]) || false;
+
+    // Get current month
+    const { year, month } = getCurrentMonth();
+    const currentMonthKey = formatMonth(year, month);
+    
+    // Update month selector if it exists
+    const editFeesMonth = document.getElementById("edit-fees-month");
+    if (editFeesMonth) {
+      editFeesMonth.innerHTML = generateMonthOptions();
+      editFeesMonth.value = currentMonthKey;
+      
+      // Add change event listener for month selection
+      editFeesMonth.onchange = function() {
+        const selectedMonth = this.value;
+        const feesPaidCheckbox = document.getElementById("edit-feesPaid");
+        if (feesPaidCheckbox) {
+          feesPaidCheckbox.checked = (student.feesPaid && student.feesPaid[selectedMonth]) || false;
+        }
+      };
+    }
+    
+    // Show fees status for the current month
+    const feesPaidCheckbox = document.getElementById("edit-feesPaid");
+    if (feesPaidCheckbox) {
+      feesPaidCheckbox.checked = (student.feesPaid && student.feesPaid[currentMonthKey]) || false;
+    }
 
     openPanel(editPanel)
     document.getElementById("edit-name").focus()
@@ -414,13 +554,59 @@ function initStudentsList() {
     renderStudentsTable(e.target.value)
   })
 
+  // Populate month selector for students tab
+  const monthSelect = document.getElementById("students-month-select");
+  if (monthSelect) {
+    const currentDate = getCurrentMonth();
+    const months = [];
+    for (let i = 0; i < 12; i++) {
+      const date = new Date(currentDate.year, currentDate.month - 1 - i, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const monthName = date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+      months.push({ value: formatMonth(year, month), label: monthName });
+    }
+    monthSelect.innerHTML = months.map((m) => `<option value="${m.value}">${m.label}</option>`).join("");
+    monthSelect.addEventListener("change", () => renderStudentsTable());
+  }
   renderStudentsTable()
+}
+
+// Debounce function for search optimization
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 function renderStudentsTable(searchTerm = "") {
   const tableBody = document.getElementById("students-table-body")
   const emptyState = document.getElementById("empty-state")
   const tableContainer = document.querySelector(".students-table-container")
+
+  // Create memo key based on search term and month
+  const monthSelect = document.getElementById("students-month-select");
+  const memoKey = `${searchTerm}-${monthSelect?.value || ''}`;
+  
+  // Check if we have cached results
+  if (cache.filteredStudents[memoKey]) {
+    const filteredStudents = cache.filteredStudents[memoKey];
+    if (filteredStudents.length === 0) {
+      tableContainer.style.display = "none"
+      emptyState.style.display = "block"
+      return
+    }
+    tableContainer.style.display = "block"
+    emptyState.style.display = "none"
+    renderTableContent(filteredStudents, tableBody);
+    return;
+  }
 
   let filteredStudents = students
 
@@ -430,9 +616,13 @@ function renderStudentsTable(searchTerm = "") {
       (student) =>
         student.name.toLowerCase().includes(term) ||
         student.fatherName.toLowerCase().includes(term) ||
-        student.className.toLowerCase().includes(term),
+        student.className.toLowerCase().includes(term) ||
+        student.phone.includes(term)
     )
   }
+
+  // Cache the filtered results
+  cache.filteredStudents[memoKey] = filteredStudents;
 
   if (filteredStudents.length === 0) {
     tableContainer.style.display = "none"
@@ -442,16 +632,25 @@ function renderStudentsTable(searchTerm = "") {
 
   tableContainer.style.display = "block"
   emptyState.style.display = "none"
+  renderTableContent(filteredStudents, tableBody, monthSelect);
+}
 
+// Helper function to render table content
+function renderTableContent(filteredStudents, tableBody, monthSelect) {
   const today = getTodayString()
+
+  // Use selected month if available
+  let monthKey;
+  if (monthSelect && monthSelect.value) {
+    monthKey = monthSelect.value;
+  } else {
+    const { year, month } = getCurrentMonth();
+    monthKey = formatMonth(year, month);
+  }
 
   const rowsHTML = filteredStudents
     .map((student) => {
       const todayAttendance = attendance[student.id]?.[today.monthKey]?.[today.dayKey] || ""
-
-      // Show fees paid for current month
-      const { year, month } = getCurrentMonth();
-      const monthKey = formatMonth(year, month);
       const isPaid = student.feesPaid && student.feesPaid[monthKey];
       return `
         <tr data-student-id="${student.id}">
@@ -461,7 +660,7 @@ function renderStudentsTable(searchTerm = "") {
           <td>Class ${student.className}</td>
           <td class="fees-toggle-cell">
             <div class="fees-toggle ${isPaid ? "paid" : ""}" 
-                 onclick="toggleFees('${student.id}')" 
+                 onclick="toggleFees('${student.id}', '${monthKey}')" 
                  title="${isPaid ? "Fees Paid" : "Fees Not Paid"}">
             </div>
           </td>
@@ -625,8 +824,18 @@ function getFilteredStudents() {
   }
 
   if (feesFilter.value) {
-    const feesPaid = feesFilter.value === "paid"
-    filtered = filtered.filter((s) => s.feesPaid === feesPaid)
+    const feesPaid = feesFilter.value === "paid";
+    // Use selected month for filtering
+    const monthSelect = document.getElementById("month-select");
+    let monthKey;
+    if (monthSelect) {
+      monthKey = monthSelect.value;
+    } else {
+      // fallback to current month
+      const { year, month } = getCurrentMonth();
+      monthKey = formatMonth(year, month);
+    }
+    filtered = filtered.filter((s) => (s.feesPaid && s.feesPaid[monthKey]) === feesPaid);
   }
 
   return filtered
@@ -703,23 +912,25 @@ function renderAttendanceTable() {
 
       const attendancePercentage = daysInMonth > 0 ? Math.round((presentCount / daysInMonth) * 100) : 0
 
-      return `
-            <div class="student-info-cell">
-                <div class="student-info-name">${student.name}</div>
-                <div class="student-info-details">
-                    Class ${student.className} • 
-                    <span class="fees-status ${student.feesPaid ? "fees-paid" : "fees-unpaid"}">
-                        ${student.feesPaid ? "Paid" : "Not Paid"}
-                    </span>
-                </div>
-            </div>
-            ${daysCells}
-            <div class="attendance-cell summary-cell">
-                <div style="color: #4facfe;">P: ${presentCount}</div>
-                <div style="color: #fa709a;">A: ${absentCount}</div>
-                <div style="color: var(--text-muted); font-size: 0.7rem;">${attendancePercentage}%</div>
-            </div>
-        `
+    // Show fees paid for selected month
+    const isPaid = student.feesPaid && student.feesPaid[selectedMonth];
+    return `
+      <div class="student-info-cell">
+        <div class="student-info-name">${student.name}</div>
+        <div class="student-info-details">
+          Class ${student.className} • 
+          <span class="fees-status ${isPaid ? "fees-paid" : "fees-unpaid"}">
+            ${isPaid ? "Paid" : "Not Paid"}
+          </span>
+        </div>
+      </div>
+      ${daysCells}
+      <div class="attendance-cell summary-cell">
+        <div style="color: #4facfe;">P: ${presentCount}</div>
+        <div style="color: #fa709a;">A: ${absentCount}</div>
+        <div style="color: var(--text-muted); font-size: 0.7rem;">${attendancePercentage}%</div>
+      </div>
+    `
     })
     .join("")
 
@@ -823,13 +1034,39 @@ window.toggleTodayAttendance = (studentId, status) => {
 }
 
 // Fees Toggle Function
-window.toggleFees = (studentId) => {
+window.toggleFees = (studentId, monthKey) => {
   const student = students.find((s) => s.id === studentId)
   if (!student) return
 
-  const { year, month } = getCurrentMonth();
-  const monthKey = formatMonth(year, month);
-  if (!student.feesPaid) student.feesPaid = {};
+  // If monthKey not provided, use the currently selected month from any available selector
+  if (!monthKey) {
+    // Try students tab month selector first
+    let monthSelect = document.getElementById("students-month-select");
+    if (!monthSelect || !monthSelect.value) {
+      // Try attendance tab month selector
+      monthSelect = document.getElementById("month-select");
+    }
+    if (!monthSelect || !monthSelect.value) {
+      // Try edit form month selector
+      monthSelect = document.getElementById("edit-fees-month");
+    }
+    if (!monthSelect || !monthSelect.value) {
+      // Fallback to current month
+      const { year, month } = getCurrentMonth();
+      monthKey = formatMonth(year, month);
+    } else {
+      monthKey = monthSelect.value;
+    }
+  }
+  // Handle migration from old boolean feesPaid to new object structure
+  if (typeof student.feesPaid === 'boolean') {
+    const oldValue = student.feesPaid;
+    student.feesPaid = {};
+    student.feesPaid[monthKey] = oldValue;
+  } else if (!student.feesPaid) {
+    student.feesPaid = {};
+  }
+
   student.feesPaid[monthKey] = !student.feesPaid[monthKey];
   saveStudents(students)
   renderStudentsTable()

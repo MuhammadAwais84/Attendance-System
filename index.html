@@ -22,7 +22,7 @@
             <div class="header-content">
                 <div class="logo">
                     <div class="logo-icon">🎓</div>
-                    <h1>AI Attendance</h1>
+                    <h1>Attendance</h1>
                 </div>
                 <div class="header-subtitle">Future of Education Management</div>
             </div>
@@ -63,8 +63,12 @@
                 <!-- Updated Students List to table format -->
                 <section class="students-section">
                     <div class="students-table-container glass-card">
-                        <div class="table-header">
+                        <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
                             <h3>Students List</h3>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <label for="students-month-select" style="font-size: 0.95rem; color: var(--text-secondary);">Month:</label>
+                                <select id="students-month-select" class="month-select" style="min-width: 120px;"></select>
+                            </div>
                         </div>
                         <div class="students-table-wrapper">
                             <table id="students-table" class="students-table">
@@ -293,6 +297,19 @@
     <!-- Toast Container -->
     <div id="toast-container" class="toast-container"></div>
 
-    <script src="script.js"></script>
+    <script src="utils.js" type="module"></script>
+    <script src="script.js" type="module"></script>
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful');
+          })
+          .catch(err => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      }
+    </script>
 </body>
 </html>
