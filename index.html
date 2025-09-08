@@ -1,297 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Attendance System - AI Powered</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Attendance System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Animated Background -->
     <div id="particles-js"></div>
-    
+
     <!-- Main Container -->
     <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="header-content">
-                <div class="logo">
-                    <div class="logo-icon">🎓</div>
-                    <h1>Attendance</h1>
+      <!-- Header -->
+      <header class="app-header">
+        <div class="header-content">
+          <div class="logo">
+            <div class="logo-icon">🎓</div>
+            <h1>Gondal-Acadmy</h1>
+          </div>
+          <div class="header-subtitle">Future of Education Management</div>
+        </div>
+      </header>
+
+      <!-- Navigation Tabs -->
+      <nav class="tab-navigation">
+        <button class="tab-btn active" data-tab="students">
+          <span class="tab-icon">👥</span>
+          <span class="tab-text">Students</span>
+        </button>
+        <button class="tab-btn" data-tab="attendance">
+          <span class="tab-icon">📊</span>
+          <span class="tab-text">Attendance</span>
+        </button>
+      </nav>
+
+      <!-- Students Tab Panel -->
+      <div id="students-panel" class="tab-panel active">
+        <div class="panel-content">
+          <!-- Added primary Add Student button and slide-in panels -->
+          <section class="add-student-section">
+            <button id="add-student-btn" class="btn btn-primary btn-large">
+              <span class="btn-icon">➕</span>
+              <span class="btn-text">Add Student</span>
+              <span class="btn-glow"></span>
+            </button>
+          </section>
+
+          <!-- Search Section -->
+          <section class="search-section glass-card">
+            <div class="search-container">
+              <input
+                type="text"
+                id="search-input"
+                placeholder="Search students..."
+                class="search-input"
+              />
+              <div class="search-icon">🔍</div>
+            </div>
+          </section>
+
+          <!-- Updated Students List to table format -->
+          <section class="students-section">
+            <div class="students-table-container glass-card">
+              <div
+                class="table-header"
+                style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  gap: 1rem;
+                "
+              >
+                <h3>Students List</h3>
+                <div style="display: flex; align-items: center; gap: 0.5rem">
+                  <label
+                    for="students-month-select"
+                    style="font-size: 0.95rem; color: var(--text-secondary)"
+                    >Month:</label
+                  >
+                  <select
+                    id="students-month-select"
+                    class="month-select"
+                    style="min-width: 120px"
+                  ></select>
                 </div>
-                <div class="header-subtitle">Future of Education Management</div>
+              </div>
+              <div class="students-table-wrapper">
+                <table id="students-table" class="students-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Father Name</th>
+                      <th>Phone</th>
+                      <th>Class</th>
+                      <th>Fees Paid</th>
+                      <th>Today's Attendance</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="students-table-body">
+                    <!-- Student rows will be dynamically generated here -->
+                  </tbody>
+                </table>
+              </div>
             </div>
-        </header>
 
-        <!-- Navigation Tabs -->
-        <nav class="tab-navigation">
-            <button class="tab-btn active" data-tab="students">
-                <span class="tab-icon">👥</span>
-                <span class="tab-text">Students</span>
-            </button>
-            <button class="tab-btn" data-tab="attendance">
-                <span class="tab-icon">📊</span>
-                <span class="tab-text">Attendance</span>
-            </button>
-        </nav>
-
-        <!-- Students Tab Panel -->
-        <div id="students-panel" class="tab-panel active">
-            <div class="panel-content">
-                <!-- Added primary Add Student button and slide-in panels -->
-                <section class="add-student-section">
-                    <button id="add-student-btn" class="btn btn-primary btn-large">
-                        <span class="btn-icon">➕</span>
-                        <span class="btn-text">Add Student</span>
-                        <span class="btn-glow"></span>
-                    </button>
-                </section>
-
-                <!-- Search Section -->
-                <section class="search-section glass-card">
-                    <div class="search-container">
-                        <input type="text" id="search-input" placeholder="Search students..." class="search-input">
-                        <div class="search-icon">🔍</div>
-                    </div>
-                </section>
-
-                <!-- Updated Students List to table format -->
-                <section class="students-section">
-                    <div class="students-table-container glass-card">
-                        <div class="table-header" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
-                            <h3>Students List</h3>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <label for="students-month-select" style="font-size: 0.95rem; color: var(--text-secondary);">Month:</label>
-                                <select id="students-month-select" class="month-select" style="min-width: 120px;"></select>
-                            </div>
-                        </div>
-                        <div class="students-table-wrapper">
-                            <table id="students-table" class="students-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Father Name</th>
-                                        <th>Phone</th>
-                                        <th>Class</th>
-                                        <th>Fees Paid</th>
-                                        <th>Today's Attendance</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="students-table-body">
-                                    <!-- Student rows will be dynamically generated here -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    
-                    <!-- Empty State -->
-                    <div id="empty-state" class="empty-state glass-card" style="display: none;">
-                        <div class="empty-icon">👨‍🎓</div>
-                        <h3>No Students Yet</h3>
-                        <p>Click "Add Student" to get started with attendance tracking</p>
-                    </div>
-                </section>
+            <!-- Empty State -->
+            <div
+              id="empty-state"
+              class="empty-state glass-card"
+              style="display: none"
+            >
+              <div class="empty-icon">👨‍🎓</div>
+              <h3>No Students Yet</h3>
+              <p>Click "Add Student" to get started with attendance tracking</p>
             </div>
+          </section>
         </div>
+      </div>
 
-        <!-- Attendance Tab Panel -->
-        <div id="attendance-panel" class="tab-panel">
-            <div class="panel-content">
-                <!-- Attendance Controls -->
-                <section class="attendance-controls glass-card">
-                    <div class="controls-grid">
-                        <div class="control-group">
-                            <label for="month-select">Select Month</label>
-                            <select id="month-select" class="month-select">
-                                <!-- Month options will be dynamically generated -->
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label for="class-filter">Filter by Class</label>
-                            <select id="class-filter" class="filter-select">
-                                <!-- Class options will be dynamically generated -->
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
-                            <label for="fees-filter">Filter by Fees</label>
-                            <select id="fees-filter" class="filter-select">
-                                <option value="">All Students</option>
-                                <option value="paid">Fees Paid</option>
-                                <option value="unpaid">Fees Not Paid</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="quick-actions">
-                        <button id="mark-all-present" class="btn btn-success">
-                            <span class="btn-text">Mark All Present</span>
-                            <span class="btn-glow"></span>
-                        </button>
-                        <button id="clear-month" class="btn btn-danger">
-                            <span class="btn-text">Clear Month</span>
-                            <span class="btn-glow"></span>
-                        </button>
-                    </div>
-                </section>
+      <!-- Attendance Tab Panel -->
+      <div id="attendance-panel" class="tab-panel">
+        <div class="panel-content">
+          <!-- Attendance Controls -->
+          <section class="attendance-controls glass-card">
+            <div class="controls-grid">
+              <div class="control-group">
+                <label for="month-select">Select Month</label>
+                <select id="month-select" class="month-select">
+                  <!-- Month options will be dynamically generated -->
+                </select>
+              </div>
 
-                <!-- Attendance Table -->
-                <section class="attendance-section">
-                    <div id="attendance-table" class="attendance-container">
-                        <!-- Attendance grid will be dynamically generated here -->
-                    </div>
-                    
-                    <!-- Empty Attendance State -->
-                    <div id="empty-attendance" class="empty-state glass-card" style="display: none;">
-                        <div class="empty-icon">📊</div>
-                        <h3>No Students Found</h3>
-                        <p>Add students or adjust your filters to view attendance</p>
-                    </div>
-                </section>
+              <div class="control-group">
+                <label for="class-filter">Filter by Class</label>
+                <select id="class-filter" class="filter-select">
+                  <!-- Class options will be dynamically generated -->
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label for="fees-filter">Filter by Fees</label>
+                <select id="fees-filter" class="filter-select">
+                  <option value="">All Students</option>
+                  <option value="paid">Fees Paid</option>
+                  <option value="unpaid">Fees Not Paid</option>
+                </select>
+              </div>
             </div>
+
+            <div class="quick-actions">
+              <button id="mark-all-present" class="btn btn-success">
+                <span class="btn-text">Mark All Present</span>
+                <span class="btn-glow"></span>
+              </button>
+              <button id="clear-month" class="btn btn-danger">
+                <span class="btn-text">Clear Month</span>
+                <span class="btn-glow"></span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Attendance Table -->
+          <section class="attendance-section">
+            <div id="attendance-table" class="attendance-container">
+              <!-- Attendance grid will be dynamically generated here -->
+            </div>
+
+            <!-- Empty Attendance State -->
+            <div
+              id="empty-attendance"
+              class="empty-state glass-card"
+              style="display: none"
+            >
+              <div class="empty-icon">📊</div>
+              <h3>No Students Found</h3>
+              <p>Add students or adjust your filters to view attendance</p>
+            </div>
+          </section>
         </div>
+      </div>
     </div>
 
     <!-- Add Student Slide-in Panel -->
     <div id="add-student-panel" class="slide-panel">
-        <div class="panel-header">
-            <h2>Add New Student</h2>
-            <button id="close-add-panel" class="close-btn">✕</button>
+      <div class="panel-header">
+        <h2>Add New Student</h2>
+        <button id="close-add-panel" class="close-btn">✕</button>
+      </div>
+      <form id="add-student-form" class="student-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="add-name">Student Name</label>
+            <input type="text" id="add-name" name="name" required />
+            <div class="error-message" id="add-name-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="add-fatherName">Father Name</label>
+            <input type="text" id="add-fatherName" name="fatherName" required />
+            <div class="error-message" id="add-fatherName-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="add-phone">Phone Number</label>
+            <input
+              type="tel"
+              id="add-phone"
+              name="phone"
+              placeholder="03XX-XXXXXXX"
+              required
+            />
+            <div class="error-message" id="add-phone-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="add-className">Class</label>
+            <select id="add-className" name="className" required>
+              <option value="1">Class 1</option>
+              <option value="2">Class 2</option>
+              <option value="3">Class 3</option>
+              <option value="4">Class 4</option>
+              <option value="5">Class 5</option>
+              <option value="6">Class 6</option>
+              <option value="7">Class 7</option>
+              <option value="8">Class 8</option>
+              <option value="9">Class 9</option>
+              <option value="10">Class 10</option>
+            </select>
+          </div>
         </div>
-        <form id="add-student-form" class="student-form">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="add-name">Student Name</label>
-                    <input type="text" id="add-name" name="name" required>
-                    <div class="error-message" id="add-name-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="add-fatherName">Father Name</label>
-                    <input type="text" id="add-fatherName" name="fatherName" required>
-                    <div class="error-message" id="add-fatherName-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="add-phone">Phone Number</label>
-                    <input type="tel" id="add-phone" name="phone" placeholder="03XX-XXXXXXX" required>
-                    <div class="error-message" id="add-phone-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="add-className">Class</label>
-                    <select id="add-className" name="className" required>
-                        <option value="1">Class 1</option>
-                        <option value="2">Class 2</option>
-                        <option value="3">Class 3</option>
-                        <option value="4">Class 4</option>
-                        <option value="5">Class 5</option>
-                        <option value="6">Class 6</option>
-                        <option value="7">Class 7</option>
-                        <option value="8">Class 8</option>
-                        <option value="9">Class 9</option>
-                        <option value="10">Class 10</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="toggle-label">
-                    <input type="checkbox" id="add-feesPaid" name="feesPaid">
-                    <span class="toggle-slider"></span>
-                    <span class="toggle-text">Fees Paid</span>
-                </label>
-            </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <span class="btn-text">Save Student</span>
-                    <span class="btn-glow"></span>
-                </button>
-            </div>
-        </form>
+
+        <div class="form-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="add-feesPaid" name="feesPaid" />
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Fees Paid</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="btn-text">Save Student</span>
+            <span class="btn-glow"></span>
+          </button>
+        </div>
+      </form>
     </div>
 
     <!-- Edit Student Slide-in Panel -->
     <div id="edit-student-panel" class="slide-panel">
-        <div class="panel-header">
-            <h2>Edit Student</h2>
-            <button id="close-edit-panel" class="close-btn">✕</button>
+      <div class="panel-header">
+        <h2>Edit Student</h2>
+        <button id="close-edit-panel" class="close-btn">✕</button>
+      </div>
+      <form id="edit-student-form" class="student-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit-name">Student Name</label>
+            <input type="text" id="edit-name" name="name" required />
+            <div class="error-message" id="edit-name-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-fatherName">Father Name</label>
+            <input
+              type="text"
+              id="edit-fatherName"
+              name="fatherName"
+              required
+            />
+            <div class="error-message" id="edit-fatherName-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-phone">Phone Number</label>
+            <input
+              type="tel"
+              id="edit-phone"
+              name="phone"
+              placeholder="03XX-XXXXXXX"
+              required
+            />
+            <div class="error-message" id="edit-phone-error"></div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-className">Class</label>
+            <select id="edit-className" name="className" required>
+              <option value="1">Class 1</option>
+              <option value="2">Class 2</option>
+              <option value="3">Class 3</option>
+              <option value="4">Class 4</option>
+              <option value="5">Class 5</option>
+              <option value="6">Class 6</option>
+              <option value="7">Class 7</option>
+              <option value="8">Class 8</option>
+              <option value="9">Class 9</option>
+              <option value="10">Class 10</option>
+            </select>
+          </div>
         </div>
-        <form id="edit-student-form" class="student-form">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="edit-name">Student Name</label>
-                    <input type="text" id="edit-name" name="name" required>
-                    <div class="error-message" id="edit-name-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-fatherName">Father Name</label>
-                    <input type="text" id="edit-fatherName" name="fatherName" required>
-                    <div class="error-message" id="edit-fatherName-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-phone">Phone Number</label>
-                    <input type="tel" id="edit-phone" name="phone" placeholder="03XX-XXXXXXX" required>
-                    <div class="error-message" id="edit-phone-error"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="edit-className">Class</label>
-                    <select id="edit-className" name="className" required>
-                        <option value="1">Class 1</option>
-                        <option value="2">Class 2</option>
-                        <option value="3">Class 3</option>
-                        <option value="4">Class 4</option>
-                        <option value="5">Class 5</option>
-                        <option value="6">Class 6</option>
-                        <option value="7">Class 7</option>
-                        <option value="8">Class 8</option>
-                        <option value="9">Class 9</option>
-                        <option value="10">Class 10</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label class="toggle-label">
-                    <input type="checkbox" id="edit-feesPaid" name="feesPaid">
-                    <span class="toggle-slider"></span>
-                    <span class="toggle-text">Fees Paid</span>
-                </label>
-            </div>
-            
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <span class="btn-text">Update Student</span>
-                    <span class="btn-glow"></span>
-                </button>
-            </div>
-        </form>
+
+        <div class="form-group">
+          <label class="toggle-label">
+            <input type="checkbox" id="edit-feesPaid" name="feesPaid" />
+            <span class="toggle-slider"></span>
+            <span class="toggle-text">Fees Paid</span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span class="btn-text">Update Student</span>
+            <span class="btn-glow"></span>
+          </button>
+        </div>
+      </form>
     </div>
 
     <!-- Modal Overlay -->
     <div id="modal-overlay" class="modal-overlay">
-        <div class="modal glass-card">
-            <h3 id="modal-title"></h3>
-            <p id="modal-message"></p>
-            <div class="modal-actions">
-                <button id="modal-confirm" class="btn btn-primary">
-                    <span class="btn-text">Confirm</span>
-                    <span class="btn-glow"></span>
-                </button>
-                <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
-            </div>
+      <div class="modal glass-card">
+        <h3 id="modal-title"></h3>
+        <p id="modal-message"></p>
+        <div class="modal-actions">
+          <button id="modal-confirm" class="btn btn-primary">
+            <span class="btn-text">Confirm</span>
+            <span class="btn-glow"></span>
+          </button>
+          <button id="modal-cancel" class="btn btn-secondary">Cancel</button>
         </div>
+      </div>
     </div>
 
     <!-- Toast Container -->
@@ -301,15 +350,16 @@
     <script src="script.js" type="module"></script>
     <!-- Service Worker Registration -->
     <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('ServiceWorker registration successful');
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register("/sw.js")
+          .then((registration) => {
+            console.log("ServiceWorker registration successful");
           })
-          .catch(err => {
-            console.log('ServiceWorker registration failed: ', err);
+          .catch((err) => {
+            console.log("ServiceWorker registration failed: ", err);
           });
       }
     </script>
-</body>
+  </body>
 </html>
